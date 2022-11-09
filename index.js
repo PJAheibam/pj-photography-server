@@ -22,15 +22,25 @@ async function run() {
   try {
     const serviceCollection = client.db("picturesque").collection("services");
 
+    const articleCollection = client.db("picturesque").collection("articles");
+
     // get the services
     app.get("/services", async (req, res) => {
       const limit = parseInt(req.query?.limit);
-      const que = {};
+      const query = {};
       const cursor = limit
-        ? serviceCollection.find(que).limit(Math.round(limit))
-        : serviceCollection.find(que);
+        ? serviceCollection.find(query).limit(Math.round(limit))
+        : serviceCollection.find(query);
       const services = await cursor.toArray();
       res.send(services);
+    });
+
+    // blog posts
+    app.get("/articles", async (req, res) => {
+      const query = {};
+      const cursor = articleCollection.find(query);
+      const articles = await cursor.toArray();
+      res.send(articles);
     });
   } finally {
     //   await client.close();

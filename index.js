@@ -24,9 +24,9 @@ async function run() {
 
     const articleCollection = client.db("picturesque").collection("articles");
 
-    // get the services
+    // // get the services
     app.get("/services", async (req, res) => {
-      const limit = parseInt(req.query?.limit);
+      const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
       const query = {};
       const cursor = limit
         ? serviceCollection.find(query).limit(Math.round(limit))
@@ -47,6 +47,7 @@ async function run() {
   }
 }
 run().catch((err) => console.error(err));
+
 app.listen(port, () => {
   console.log("Server is running on port - ", port);
 });

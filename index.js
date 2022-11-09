@@ -1,8 +1,9 @@
 require("dotenv").config();
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const jwt = require("jsonwebtoken");
 
 app.use(cors());
 app.use(express.json());
@@ -26,7 +27,7 @@ async function run() {
 
     // // get the services
     app.get("/services", async (req, res) => {
-      const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
+      const limit = req.query.limit;
       const query = {};
       const cursor = limit
         ? serviceCollection.find(query).limit(Math.round(limit))
@@ -41,6 +42,25 @@ async function run() {
       const cursor = articleCollection.find(query);
       const articles = await cursor.toArray();
       res.send(articles);
+    });
+
+    // blog post
+    app.get("/articles/:id", async (req, res) => {
+      //   console.log(req.params);
+      const id = req.params.id;
+      const query = {
+        _id: ObjectId(id),
+      };
+      const article = await articleCollection.findOne(query);
+      res.send(article);
+    });
+
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send(token);
     });
   } finally {
     //   await client.close();

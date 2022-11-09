@@ -19,13 +19,28 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.status(401).send({ message: "unauthorized-access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      res.status(404).send({ message: "forbidden-access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 async function run() {
   try {
     const serviceCollection = client.db("picturesque").collection("services");
 
     const articleCollection = client.db("picturesque").collection("articles");
 
-    // // get the services
+    // get the services api
     app.get("/services", async (req, res) => {
       const limit = req.query.limit;
       const query = {};
@@ -36,7 +51,7 @@ async function run() {
       res.send(services);
     });
 
-    // blog posts
+    // blog posts api
     app.get("/articles", async (req, res) => {
       const query = {};
       const cursor = articleCollection.find(query);
@@ -44,7 +59,7 @@ async function run() {
       res.send(articles);
     });
 
-    // blog post
+    // blog post api
     app.get("/articles/:id", async (req, res) => {
       //   console.log(req.params);
       const id = req.params.id;
@@ -55,12 +70,32 @@ async function run() {
       res.send(article);
     });
 
+    // orders api
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const decoded = req.decoded;
+      if (decoded !== email) {
+        res.status(401).send({ message: "unauthorized-access" });
+      }
+    });
+
+    // jwt api
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
       res.send(token);
+    });
+
+    // add service api
+    app.post("/services", async (req, res) => {
+      const data = req.body;
+      const result = await serviceCollection.insertOne(data);
+      console.log(result);
+      if (result.acknowledged)
+        res.status(200).send({ message: "Data added to server!" });
+      else res.status(501).send({ message: "Error while adding data!" });
     });
   } finally {
     //   await client.close();

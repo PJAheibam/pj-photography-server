@@ -108,6 +108,26 @@ async function run() {
         res.status(200).send({ message: "Data added to server!" });
       else res.status(501).send({ message: "Error while adding data!" });
     });
+
+    // add review
+    app.patch("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: ObjectId(id) };
+      const option = { upsert: false };
+      const updateService = {
+        $set: {
+          reviews: data,
+        },
+      };
+      const result = await serviceCollection.updateOne(
+        filter,
+        updateService,
+        option
+      );
+      console.log(result, data);
+      res.send(result);
+    });
   } finally {
     //   await client.close();
   }

@@ -51,6 +51,17 @@ async function run() {
       res.send(services);
     });
 
+    // single service api
+    app.get("/services/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = {
+        _id: ObjectId(id),
+      };
+      const service = await serviceCollection.findOne(query);
+
+      res.send(service);
+    });
+
     // blog posts api
     app.get("/articles", async (req, res) => {
       const query = {};
@@ -92,7 +103,7 @@ async function run() {
     app.post("/services", async (req, res) => {
       const data = req.body;
       const result = await serviceCollection.insertOne(data);
-      console.log(result);
+      // console.log(result);
       if (result.acknowledged)
         res.status(200).send({ message: "Data added to server!" });
       else res.status(501).send({ message: "Error while adding data!" });

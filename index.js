@@ -59,7 +59,23 @@ async function run() {
       const query = {
         _id: ObjectId(id),
       };
-      const service = await serviceCollection.findOne(query);
+
+      let service = await serviceCollection.findOne(query);
+
+      if (JSON.stringify(service.reviews) !== "[]") {
+        const reviews = service.reviews.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+
+          // descending order sort
+          if (dateA < dateB) return 1;
+          else if (dateA > dateB) return -1;
+          else return 0;
+        });
+        service.reviews = reviews;
+      }
+
+      console.log(service);
 
       res.send(service);
     });

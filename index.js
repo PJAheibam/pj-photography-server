@@ -81,12 +81,32 @@ async function run() {
       res.send(article);
     });
 
-    // orders api
-    app.get("/orders", verifyJWT, async (req, res) => {
-      const email = req.query.email;
-      const decoded = req.decoded;
-      if (decoded !== email) {
-        res.status(401).send({ message: "unauthorized-access" });
+    // user review api
+    app.get("/reviews", verifyJWT, async (req, res) => {
+      const uid = req.query.uid;
+      // console.log(uid);
+      // console.log(req.decoded);
+      // res.send({ message: "Decoded" });
+      if (req.decoded?.uid === uid) {
+        const cursor = serviceCollection.find({});
+        const services = await cursor.toArray();
+        const r = services.map((service) => {
+          const found = service?.reviews
+            ? service?.reviews.find((review) => review.uid === uid)
+            : undefined;
+
+          if (found === undefined) return found;
+          return {
+            ...found,
+            image_url: service?.image_url,
+            service_name: service?.name,
+            service_id: service?._id,
+          };
+        });
+        const data = r.filter((item) => item !== undefined);
+        // console.log(data);
+        res.send({ reviews: data });
+        // console.log(res);
       }
     });
 
@@ -109,24 +129,48 @@ async function run() {
       else res.status(501).send({ message: "Error while adding data!" });
     });
 
-    // add review
+    // add review or remove review
     app.patch("/services/:id", async (req, res) => {
+      const method = req.query.method;
       const id = req.params.id;
       const data = req.body;
       const filter = { _id: ObjectId(id) };
       const option = { upsert: false };
-      const updateService = {
-        $set: {
-          reviews: data,
-        },
-      };
-      const result = await serviceCollection.updateOne(
-        filter,
-        updateService,
-        option
+      const service = await serviceCollection.findOne(filter);
+      const restReviews = service?.reviews?.filter(
+        (item) => item?.uid !== data?.uid
       );
-      console.log(result, data);
-      res.send(result);
+      console.log(restReviews);
+
+      if (method && method.toLowerCase() === "patch") {
+        const updateService = {
+          $set: {
+            reviews: restReviews ? [data, ...restReviews] : [data],
+          },
+        };
+        const result = await serviceCollection.updateOne(
+          filter,
+          updateService,
+          option
+        );
+        // console.log(result, data);
+        res.send(result);
+      }
+      // handles delete an item from reviews array
+      else if (method && method.toLocaleLowerCase() === "remove") {
+        const updateService = {
+          $set: {
+            reviews: [...restReviews],
+          },
+        };
+        const result = await serviceCollection.updateOne(
+          filter,
+          updateService,
+          option
+        );
+        console.log(result);
+        res.send(result);
+      } else return res.send("No Item Found To Delete");
     });
   } finally {
     //   await client.close();

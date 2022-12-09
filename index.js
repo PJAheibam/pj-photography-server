@@ -5,7 +5,13 @@ const cors = require("cors");
 const app = express();
 const jwt = require("jsonwebtoken");
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
 app.use(express.json());
 
 const port = process.env.PORT || 5000;
@@ -75,7 +81,7 @@ async function run() {
         service.reviews = reviews;
       }
 
-      console.log(service);
+      // console.log(service);
 
       res.send(service);
     });

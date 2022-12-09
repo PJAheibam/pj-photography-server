@@ -99,11 +99,15 @@ async function run() {
     });
 
     // blog posts api
-    app.get("/articles", async (req, res) => {
-      const query = {};
-      const cursor = articleCollection.find(query);
-      const articles = await cursor.toArray();
-      res.send(articles);
+    app.get("/articles", async (__req, res) => {
+      try {
+        const articles = await articleCollection.find({}).toArray();
+        console.log(articles);
+        return res.send(articles);
+      } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+      }
     });
 
     // blog post api

@@ -5,18 +5,20 @@ const cors = require("cors");
 const app = express();
 const jwt = require("jsonwebtoken");
 
-app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
+// app.use(
+//   cors({
+//     origin: "*",
+//     credentials: true,
+//     optionsSuccessStatus: 200,
+//   })
+// );
+
+app.use(cors());
 app.use(express.json());
 
 const port = process.env.PORT || 5000;
 
-app.get("/", (req, res) => res.send("Server is running"));
+app.get("/", (_req, res) => res.send("Server is running"));
 
 const uri = `mongodb+srv://${process.env.DB_USER_ID}:${process.env.DB_USER_PASS}@cluster0.0hl8m1y.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
@@ -53,9 +55,12 @@ async function run() {
       try {
         const limit = req.query.limit;
         const query = {};
-        const cursor = limit
-          ? serviceCollection.find(query).limit(Math.round(limit))
-          : serviceCollection.find(query);
+
+        let cursor = null;
+        if (limit) {
+          cursor = serviceCollection.find(query).limit(Math.round(limit));
+        } else cursor = serviceCollection.find(query);
+
         const services = await cursor.toArray();
 
         return res.send(services);
@@ -67,29 +72,30 @@ async function run() {
 
     // single service api
     app.get("/services/:id", async (req, res) => {
-      const { id } = req.params;
-      const query = {
-        _id: ObjectId(id),
-      };
+      try {
+        const { id } = req.params;
+        const query = {
+          _id: ObjectId(id),
+        };
 
-      let service = await serviceCollection.findOne(query);
+        let service = await serviceCollection.find(query).toArray();
 
-      if (JSON.stringify(service.reviews) !== "[]") {
-        const reviews = service.reviews.sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
+        if (service.length !== 0) {
+          const reviews = service.reviews.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
 
-          // descending order sort
-          if (dateA < dateB) return 1;
-          else if (dateA > dateB) return -1;
-          else return 0;
-        });
-        service.reviews = reviews;
+            // descending order sort
+            if (dateA < dateB) return 1;
+            else if (dateA > dateB) return -1;
+            else return 0;
+          });
+          service.reviews = reviews;
+        }
+        return res.send(service);
+      } catch (err) {
+        return res.sendStatus(500);
       }
-
-      // console.log(service);
-
-      res.send(service);
     });
 
     // blog posts api

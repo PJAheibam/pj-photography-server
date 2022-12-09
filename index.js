@@ -50,13 +50,19 @@ async function run() {
 
     // get the services api
     app.get("/services", async (req, res) => {
-      const limit = req.query.limit;
-      const query = {};
-      const cursor = limit
-        ? serviceCollection.find(query).limit(Math.round(limit))
-        : serviceCollection.find(query);
-      const services = await cursor.toArray();
-      res.send(services);
+      try {
+        const limit = req.query.limit;
+        const query = {};
+        const cursor = limit
+          ? serviceCollection.find(query).limit(Math.round(limit))
+          : serviceCollection.find(query);
+        const services = await cursor.toArray();
+
+        return res.send(services);
+      } catch (err) {
+        console.log(err);
+        return res.sendStatus(500);
+      }
     });
 
     // single service api
@@ -146,7 +152,7 @@ async function run() {
       // console.log(result);
       if (result.acknowledged)
         res.status(200).send({ message: "Data added to server!" });
-      else res.status(501).send({ message: "Error while adding data!" });
+      else res.sendStatus(501);
     });
 
     // add review or remove review

@@ -5,14 +5,6 @@ const cors = require("cors");
 const app = express();
 const jwt = require("jsonwebtoken");
 
-// app.use(
-//   cors({
-//     origin: "*",
-//     credentials: true,
-//     optionsSuccessStatus: 200,
-//   })
-// );
-
 app.use(cors());
 app.use(express.json());
 
@@ -25,6 +17,15 @@ const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
+});
+
+// get jwt token
+app.post("/jwt", (req, res) => {
+  const user = req.body;
+  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "1h",
+  });
+  res.send({ token });
 });
 
 function verifyJWT(req, res, next) {
@@ -78,10 +79,11 @@ async function run() {
           _id: ObjectId(id),
         };
 
-        let service = await serviceCollection.find(query).toArray();
+        let service = {};
+        const services = await serviceCollection.find(query).toArray();
 
-        if (service.length !== 0) {
-          const reviews = service.reviews.sort((a, b) => {
+        if (services.length) {
+          const reviews = services.reviews?.sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
 
@@ -90,20 +92,25 @@ async function run() {
             else if (dateA > dateB) return -1;
             else return 0;
           });
-          service.reviews = reviews;
+          service = services[0];
         }
+        // console.log("service", service);
         return res.send(service);
       } catch (err) {
+        console.error(err);
         return res.sendStatus(500);
       }
     });
 
     // blog posts api
-    app.get("/articles", async (req, res) => {
-      const query = {};
-      const cursor = articleCollection.find(query);
-      const articles = await cursor.toArray();
-      res.send(articles);
+    app.get("/articles", async (__req, res) => {
+      try {
+        const articles = await articleCollection.find({}).toArray();
+        return res.send(articles);
+      } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+      }
     });
 
     // blog post api
@@ -140,15 +147,6 @@ async function run() {
         // console.log(data);
         res.send({ reviews: data });
       } else res.send({ message: "Error" });
-    });
-
-    // jwt api
-    app.post("/jwt", (req, res) => {
-      const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
-      });
-      res.send({ token });
     });
 
     // add service api

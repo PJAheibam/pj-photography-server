@@ -57,14 +57,16 @@ async function run() {
         const limit = req.query.limit;
         const query = {};
 
-        let cursor = null;
         if (limit) {
-          cursor = serviceCollection.find(query).limit(Math.round(limit));
-        } else cursor = serviceCollection.find(query);
-
-        const services = await cursor.toArray();
-
-        return res.send(services);
+          const services = await serviceCollection
+            .find(query)
+            .limit(Math.round(limit))
+            .toArray();
+          return res.send(services);
+        } else {
+          const services = await serviceCollection.find(query).toArray();
+          return res.send(services);
+        }
       } catch (err) {
         console.log(err);
         return res.sendStatus(500);
